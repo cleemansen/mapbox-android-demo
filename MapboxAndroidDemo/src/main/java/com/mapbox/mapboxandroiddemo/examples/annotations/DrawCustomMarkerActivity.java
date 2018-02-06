@@ -38,7 +38,7 @@ public class DrawCustomMarkerActivity extends AppCompatActivity {
       public void onMapReady(MapboxMap mapboxMap) {
 
         // Create an Icon object for the marker to use
-        Icon icon = IconFactory.getInstance(DrawCustomMarkerActivity.this).fromResource(R.drawable.purple_marker);
+        Icon icon = IconFactory.getInstance(DrawCustomMarkerActivity.this).fromResource(R.drawable.ic_map_marker_default_34dp);
 
         // Add the custom icon marker to the map
         mapboxMap.addMarker(new MarkerOptions()
