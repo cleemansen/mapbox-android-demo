@@ -8,27 +8,27 @@ import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 
+import com.mapbox.geojson.Point;
+import com.mapbox.geojson.Polygon;
 import com.mapbox.mapboxandroiddemo.R;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
-import com.mapbox.mapboxsdk.style.functions.Function;
-import com.mapbox.mapboxsdk.style.functions.stops.Stop;
-import com.mapbox.mapboxsdk.style.functions.stops.Stops;
 import com.mapbox.mapboxsdk.style.layers.FillLayer;
 import com.mapbox.mapboxsdk.style.layers.LineLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
-import com.mapbox.services.api.utils.turf.TurfException;
-import com.mapbox.services.api.utils.turf.TurfJoins;
-import com.mapbox.services.commons.models.Position;
+import com.mapbox.turf.TurfJoins;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
+import static com.mapbox.mapboxsdk.style.expressions.Expression.interpolate;
+import static com.mapbox.mapboxsdk.style.expressions.Expression.stop;
+import static com.mapbox.mapboxsdk.style.expressions.Expression.zoom;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillOpacity;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineColor;
@@ -41,7 +41,8 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineWidth;
 public class IndoorMapActivity extends AppCompatActivity {
 
   private GeoJsonSource indoorBuildingSource;
-  private List<Position> boundingBox;
+  private List<Point> boundingBox;
+  private List<List<Point>> boundingBoxList;
   private View levelButtons;
   private MapView mapView;
   private MapboxMap map;
@@ -57,7 +58,7 @@ public class IndoorMapActivity extends AppCompatActivity {
     // This contains the MapView in XML and needs to be called after the access token is configured.
     setContentView(R.layout.activity_lab_indoor_map);
 
-    mapView = (MapView) findViewById(R.id.mapView);
+    mapView = findViewById(R.id.mapView);
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(new OnMapReadyCallback() {
       @Override
@@ -67,38 +68,34 @@ public class IndoorMapActivity extends AppCompatActivity {
         levelButtons = findViewById(R.id.floor_level_buttons);
 
         boundingBox = new ArrayList<>();
-        boundingBox.add(Position.fromCoordinates(-77.03791, 38.89715));
-        boundingBox.add(Position.fromCoordinates(-77.03791, 38.89811));
-        boundingBox.add(Position.fromCoordinates(-77.03532, 38.89811));
-        boundingBox.add(Position.fromCoordinates(-77.03532, 38.89708));
 
-        mapboxMap.setOnCameraChangeListener(new MapboxMap.OnCameraChangeListener() {
+        boundingBox.add(Point.fromLngLat(-77.03791, 38.89715));
+        boundingBox.add(Point.fromLngLat(-77.03791, 38.89811));
+        boundingBox.add(Point.fromLngLat(-77.03532, 38.89811));
+        boundingBox.add(Point.fromLngLat(-77.03532, 38.89708));
+
+        boundingBoxList = new ArrayList<>();
+        boundingBoxList.add(boundingBox);
+
+        mapboxMap.addOnCameraMoveListener(new MapboxMap.OnCameraMoveListener() {
           @Override
-          public void onCameraChange(CameraPosition position) {
-
-            if (position.zoom > 16) {
-              try {
-                if (TurfJoins.inside(Position.fromCoordinates(
-                  position.target.getLongitude(),
-                  position.target.getLatitude()),
-                  boundingBox)) {
-                  if (levelButtons.getVisibility() != View.VISIBLE) {
-                    showLevelButton();
-                  }
-                } else {
-                  if (levelButtons.getVisibility() == View.VISIBLE) {
-                    hideLevelButton();
-                  }
+          public void onCameraMove() {
+            if (mapboxMap.getCameraPosition().zoom > 16) {
+              if (TurfJoins.inside(Point.fromLngLat(mapboxMap.getCameraPosition().target.getLongitude(),
+                mapboxMap.getCameraPosition().target.getLatitude()), Polygon.fromLngLats(boundingBoxList))) {
+                if (levelButtons.getVisibility() != View.VISIBLE) {
+                  showLevelButton();
                 }
-              } catch (TurfException turfException) {
-                turfException.printStackTrace();
+              } else {
+                if (levelButtons.getVisibility() == View.VISIBLE) {
+                  hideLevelButton();
+                }
               }
             } else if (levelButtons.getVisibility() == View.VISIBLE) {
               hideLevelButton();
             }
           }
         });
-
         indoorBuildingSource = new GeoJsonSource("indoor-building", loadJsonFromAsset("white_house_lvl_0.geojson"));
         mapboxMap.addSource(indoorBuildingSource);
 
@@ -106,8 +103,7 @@ public class IndoorMapActivity extends AppCompatActivity {
         loadBuildingLayer();
       }
     });
-
-    Button buttonSecondLevel = (Button) findViewById(R.id.second_level_button);
+    Button buttonSecondLevel = findViewById(R.id.second_level_button);
     buttonSecondLevel.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
@@ -115,7 +111,7 @@ public class IndoorMapActivity extends AppCompatActivity {
       }
     });
 
-    Button buttonGroundLevel = (Button) findViewById(R.id.ground_level_button);
+    Button buttonGroundLevel = findViewById(R.id.ground_level_button);
     buttonGroundLevel.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
@@ -192,26 +188,20 @@ public class IndoorMapActivity extends AppCompatActivity {
       fillColor(Color.parseColor("#eeeeee")),
       // Function.zoom is used here to fade out the indoor layer if zoom level is beyond 16. Only
       // necessary to show the indoor map at high zoom levels.
-      fillOpacity(Function.zoom(Stops.exponential(
-        Stop.stop(17f, fillOpacity(1f)),
-        Stop.stop(16.5f, fillOpacity(0.5f)),
-        Stop.stop(16f, fillOpacity(0f))
-      )))
-
-    );
+      fillOpacity(interpolate(exponential(1f), zoom(),
+        stop(17f, 1f),
+        stop(16.5f, 0.5f),
+        stop(16f, 0f))));
 
     map.addLayer(indoorBuildingLayer);
 
     LineLayer indoorBuildingLineLayer = new LineLayer("indoor-building-line", "indoor-building").withProperties(
       lineColor(Color.parseColor("#50667f")),
       lineWidth(0.5f),
-      lineOpacity(Function.zoom(Stops.exponential(
-        Stop.stop(17f, lineOpacity(1f)),
-        Stop.stop(16.5f, lineOpacity(0.5f)),
-        Stop.stop(16f, lineOpacity(0f))
-      )))
-
-    );
+      lineOpacity(interpolate(exponential(1f), zoom(),
+        stop(17f, 1f),
+        stop(16.5f, 0.5f),
+        stop(16f, 0f))));
     map.addLayer(indoorBuildingLineLayer);
   }
 
