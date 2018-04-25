@@ -709,13 +709,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         break;
       default:
         exampleItemModels.add(new ExampleItemModel(
-                R.string.activity_basic_simple_fragments_title,
-                R.string.activity_basic_simple_fragments_description,
-                new Intent(MainActivity.this, HostActivity.class),
-                R.string.empty_image,
-                false,
-                BuildConfig.MIN_SDK_VERSION));
-        exampleItemModels.add(new ExampleItemModel(
           R.string.activity_basic_simple_mapview_title,
           R.string.activity_basic_simple_mapview_description,
           new Intent(MainActivity.this, SimpleMapViewActivity.class),
