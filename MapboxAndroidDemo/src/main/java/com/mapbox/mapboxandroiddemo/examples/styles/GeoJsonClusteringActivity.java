@@ -2,14 +2,17 @@ package com.mapbox.mapboxandroiddemo.examples.styles;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import com.mapbox.mapboxandroiddemo.R;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
+import com.mapbox.mapboxsdk.constants.Style;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
@@ -43,6 +46,7 @@ public class GeoJsonClusteringActivity extends AppCompatActivity {
 
   private MapView mapView;
   private MapboxMap mapboxMap;
+  private FloatingActionButton changeMapType;
 
 
   @Override
@@ -57,6 +61,7 @@ public class GeoJsonClusteringActivity extends AppCompatActivity {
     setContentView(R.layout.activity_geojson_clustering);
 
     mapView = findViewById(R.id.mapView);
+    changeMapType = findViewById(R.id.change_map_type);
 
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(new OnMapReadyCallback() {
@@ -71,6 +76,19 @@ public class GeoJsonClusteringActivity extends AppCompatActivity {
 
         Toast.makeText(GeoJsonClusteringActivity.this, R.string.zoom_map_in_and_out_instruction,
           Toast.LENGTH_SHORT).show();
+
+        changeMapType.setOnClickListener(new View.OnClickListener() {
+          @Override
+          public void onClick(View v) {
+            String oldStyle = v.getTag() != null ? (String) v.getTag() : Style.DARK;
+            mapboxMap.setStyleUrl(oldStyle.equals(Style.DARK) ? Style.LIGHT : Style.DARK);
+            v.setTag(mapboxMap.getStyleUrl());
+
+            // not possible - you can not add the same source twice!
+            // com.mapbox.mapboxsdk.style.sources.CannotAddSourceException: Source earthquakes already exists
+//            addClusteredGeoJsonSource();
+          }
+        });
       }
     });
   }
