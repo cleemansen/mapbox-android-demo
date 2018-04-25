@@ -5,6 +5,7 @@
     each example's recyclerview card ****** -->
 
     <string name="activity_basic_simple_mapview_description">Show a map in your app using the Mapbox Maps SDK.</string>
+    <string name="activity_basic_simple_fragments_description">Reference to GitHub Issue.</string>
     <string name="activity_basic_support_map_frag_description">Include a map fragment within your app using Android support library.</string>
     <string name="activity_basic_mapbox_options_description">Add a mapview in a dynamically created layout.</string>
     <string name="activity_styles_mapbox_studio_description">Use a custom Mapbox-hosted style.</string>
